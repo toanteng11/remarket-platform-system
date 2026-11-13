@@ -1,4 +1,4 @@
-﻿# Open Questions and Decisions – ReMarket
+# Open Questions and Decisions – ReMarket
 
 ## Thông tin tài liệu
 
@@ -96,9 +96,26 @@ Các câu hỏi sau không thay thế thiết kế chi tiết tại BA 05/06. Ch
 
 Không mở rộng các định hướng trên thành lựa chọn cụ thể ngoài phạm vi user đã nói.
 
-### Decision record mới
+### Decision records nghiệp vụ cốt lõi đã phê duyệt (Baseline R1/R2/R3)
 
-Chưa có quyết định sản phẩm/chính sách/kiến trúc bổ sung nào được phê duyệt trong tài liệu này. Mỗi quyết định mới cần ghi theo mẫu:
+Các quyết định dưới đây khép lại các câu hỏi P0/P1 về mô hình kinh doanh, dòng tiền, khiếu nại và vận hành nhằm đồng bộ hóa toàn bộ bộ tài liệu `02` $\rightarrow$ `09`.
+
+| Mã quyết định | Chủ đề & Phạm vi giải quyết | Nội dung chốt (Baseline) | Khép câu hỏi | Tham chiếu Rule / Tài liệu |
+|---|---|---|---|---|
+| **DEC-BIZ-01** | Mô hình C2C thuần & Đơn hàng 1-1 | Vận hành C2C hàng cũ thanh lý tại Việt Nam (`VNĐ`). Mỗi tin đăng đại diện cho **01 vật phẩm duy nhất (`Inventory = 1`)**; 01 đơn hàng chỉ gồm 01 sản phẩm của 01 Seller (`Single-item, Single-seller`). | `Q-BIZ-01..03`, `Q-BIZ-10` | `BR-ORD-001`, `INV-01` |
+| **DEC-BIZ-02** | Giữ hàng 15 phút & Chống găm hàng | Hold Window mặc định là **15 phút**; mỗi Buyer chỉ được giữ tối đa **2 đơn `AWAITING_PAYMENT` đồng thời**. Sau khi hủy hoặc hết hạn thanh toán, áp dụng **cooldown 30 phút** và tối đa **2 lần hold/ngày** cho cùng `(BuyerId, ListingId)`. | `Q-BIZ-05..06`, `Q-BIZ-11..12` | `BR-ORD-013`, `BR-ORD-014` |
+| **DEC-BIZ-03** | Ký quỹ trả trước (Hoãn COD sang R3+) | R1/R2 áp dụng **100% Prepaid Escrow Only** (Ví điện tử/Chuyển khoản QR/Thẻ) để bảo toàn bất biến `INV-02/INV-04`. Hỗ trợ COD (`FR-PAY-15`) được **hoãn sang R3+**. | `Q-OPS-05`, `Q-BIZ-12` | `BR-PAY-015`, `INV-02`, `INV-04` |
+| **DEC-BIZ-04** | Cửa sổ khiếu nại `72h` & Chu kỳ `T+3` | Cửa sổ Buyer mở khiếu nại sau `DELIVERED` là **72 giờ** (thay cho đề xuất `48 giờ`). Quy ước **`T+3`** là `72 giờ` bảo vệ người mua + lô giải ngân ngân hàng kế tiếp (`T+1` ngày làm việc). Riêng hạn chót Seller đóng gói giao 3PL giữ nguyên là **48 giờ** từ lúc `PAID_ESCROW`. | `Q-BIZ-13..15` | `BR-DSP-001`, `BR-PAY-012`, `BR-ORD-015` |
+| **DEC-BIZ-05** | Phí sàn `5%` & Khấu trừ cước cân nặng | Phí sàn cố định **`5%` trên Giá trị sản phẩm** (không tính trên phí ship 3PL). Hoàn tiền 100% $\rightarrow$ phí sàn = `0 VNĐ`; Split Escrow $\rightarrow$ thu `5%` trên phần tiền Seller thực nhận. Phụ trội cân nặng/kích thước do Seller khai thiếu (`OverweightSurcharge`) được trừ thẳng vào `NetSellerAmount`. | `Q-BIZ-07..09` | `BR-PAY-013`, `BR-PAY-014` |
+| **DEC-BIZ-06** | Reverse Logistics & Phân bổ cước RTS | Phán quyết `VERDICT_RETURN_AND_REFUND`: Buyer phải gửi trả hàng qua 3PL trong **72 giờ** (quá hạn $\rightarrow$ đóng khiếu nại & giải ngân Seller); sau khi có `POD` hoàn hàng tới Seller, Seller có **48 giờ** xác nhận hoặc phản khiếu nại kèm video khui hàng (quá `48 giờ` im lặng $\rightarrow$ tự động hoàn tiền 100% Buyer). Lỗi Seller $\rightarrow$ Seller chịu cước 2 chiều; giao thất bại 3 lần do Buyer không nhận (`RTS`) $\rightarrow$ hoàn tiền hàng cho Buyer sau khi trừ cước giao đi & cước chuyển hoàn 3PL. | `Q-OPS-04`, `Q-OPS-06` | `BR-DSP-005`, `BR-DSP-006`, `BR-SHP-005` |
+| **DEC-BIZ-07** | Giới hạn 3PL, Bảo hiểm & Mất/Hỏng hàng | R1/R2 chỉ hỗ trợ kiện hàng tiêu chuẩn qua 3PL (`<= 30kg`, kích thước chuẩn 3PL; loại trừ xe cộ, BĐS, nội thất cồng kềnh). Đơn hàng **`>= 3.000.000 VNĐ`** bắt buộc mua **Bảo hiểm khai giá 3PL**. Nếu 3PL xác nhận `LOST`/`DAMAGED`, hoàn tiền ngay cho Buyer từ Escrow và nền tảng tự đối soát thu bồi thường từ 3PL. | `Q-OPS-03`, `Q-BIZ-03` | `BR-SHP-006`, `BR-SHP-007` |
+| **DEC-BIZ-08** | Giới hạn Media, eKYC `5M` & Thuế C2C | Chuẩn hóa media: **1–10 ảnh (`<= 10MB/ảnh`, JPEG/PNG/WebP)** và **video bằng chứng/unboxing `<= 50MB`**. Bắt buộc **eKYC (CCCD + khuôn mặt)** cho giao dịch **`>= 5.000.000 VNĐ`**, lúc rút tiền Seller hoặc vượt ngưỡng doanh thu; thu thập **MST/CCCD** theo nghĩa vụ thuế TMĐT hiện hành. | `Q-BIZ-04`, `Q-OPS-01..02`, `Q-DATA-08` | `BR-MED-001`, `BR-ACT-006` |
+| **DEC-BIZ-09** | Chat ẩn danh & Private Offer (R3) | Tính năng Chat & Trả giá thuộc phạm vi `R3`, tự động che/chặn PII (SĐT, link Zalo/FB, STK) để chống giao dịch ngoài sàn. Thương lượng giá sử dụng **`Private Price Offer`** gắn riêng cho `BuyerId` (`TTL 24h`), không sửa giá công khai của tin đăng. | Phạm vi `R3` | `BR-MSG-001`, `BR-ACT-005` |
+| **DEC-BIZ-10** | Bằng chứng WORM & Kiểm soát bất biến | Mọi phán quyết khiếu nại và log giao dịch tài chính lưu trữ bất biến trên **S3 WORM Object Lock** (`INV-05`); mọi thao tác kho/tiền bắt buộc `Idempotency-Key` & `Row-Level Lock` (`INV-01..04`). | `Q-DR-01..06` | `INV-01..05` |
+
+### Decision record mới (Mẫu bổ sung cho các thay đổi tương lai)
+
+Các quyết định kiến trúc/chính sách phát sinh ngoài `DEC-BIZ-01..10` cần ghi nhận bổ sung theo mẫu dưới đây:
 
 | Trường | Giá trị cần ghi |
 |---|---|
@@ -126,3 +143,4 @@ Chưa có quyết định sản phẩm/chính sách/kiến trúc bổ sung nào 
 | Phiên bản | Ngày | Mô tả |
 |---|---|---|
 | 1.0 | 12/11/2026 | Tạo backlog câu hỏi và decision log; chỉ ghi nhận các định hướng công nghệ đã nêu, chưa tự chốt cấu hình. |
+| 1.1 | 13/11/2026 | Phê duyệt bộ quyết định nghiệp vụ baseline `DEC-BIZ-01..10` nhằm khép kín các lỗ hổng P0/P1 và đồng bộ thông số (`72h`, `5%`, `10MB`, Prepaid Escrow, Reverse Logistics, 3PL `<=30kg`) xuyên suốt tài liệu `02`–`09`. |

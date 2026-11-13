@@ -15,7 +15,7 @@
 
 - Dạng **Given / When / Then**. ID: `AC-<epic>-<số>` khớp với `US-<epic>-<số>`.
 - Mỗi AC gồm đường chính (happy path), đường âm (negative) và khi liên quan: lặp/idempotency, quyền, đồng thời, hồi phục.
-- Giá trị `(15 phút)`, `(48 giờ)`, `(1–10 ảnh)`, `(22:00–08:00)` là đề xuất đang chờ duyệt; kiểm thử dùng giá trị cấu hình hiện hành.
+- Giá trị chuẩn hóa theo `DEC-BIZ-01..10`: `(15 phút giữ hàng)`, `(72 giờ cửa sổ khiếu nại / 48 giờ đóng gói)`, `(phí sàn 5%)`, `(1–10 ảnh ≤10 MB/ảnh)`, `(22:00–08:00)`; kiểm thử dùng giá trị cấu hình hiện hành.
 - Các AC nhất quán liên service dùng thuật ngữ trạng thái trong `glossary.md` §3.
 - Các tiêu chí hiệu năng/sẵn sàng/phục hồi mang tính định lượng chỉ kiểm thử khi owner đã duyệt ngưỡng (xem NFR §14).
 
@@ -67,7 +67,7 @@
 - Giá không hợp lệ (âm, quá giới hạn cấu hình) bị từ chối.
 
 **AC-LST-02 – Ảnh**
-- Given tin nháp, When tải ảnh JPEG/PNG/WebP ≤5 MB, Then ảnh được lưu và hiển thị; 10 ảnh là giới hạn trên, ảnh thứ 11 bị từ chối.
+- Given tin nháp, When tải ảnh JPEG/PNG/WebP ≤10 MB, Then ảnh được lưu và hiển thị; 10 ảnh là giới hạn trên, ảnh thứ 11 bị từ chối (video bằng chứng ≤50 MB).
 - Given tệp có đuôi .jpg nhưng nội dung thực không phải ảnh, When tải lên, Then bị từ chối.
 - Given một ảnh tải lỗi, When thử lại, Then các ảnh đã tải thành công không mất.
 - Database chỉ chứa object key/metadata, không chứa binary ảnh.
@@ -265,7 +265,7 @@
 
 ## 10. Khiếu nại (AC-DSP)
 
-**AC-DSP-01** – Given đơn Delivered trong 48 giờ, When buyer mở khiếu nại có lý do/bằng chứng, Then đơn chuyển Disputed; sau thời hạn thì không mở được (hoặc theo chính sách ngoại lệ).
+**AC-DSP-01** – Given đơn Delivered trong 72 giờ (`BR-DSP-001`), When buyer mở khiếu nại có lý do/bằng chứng (ảnh ≤10 MB / video ≤50 MB), Then đơn chuyển Disputed và Escrow đóng băng tức thời; quá 72 giờ thì không mở được. Nếu phán quyết trả hàng, Buyer phải gửi hoàn trong 72 giờ và Seller có 48 giờ kiểm tra sau `POD` (`BR-DSP-005`).
 **AC-DSP-02** – Given đơn Disputed, Then đơn bị loại khỏi giải ngân; khi quyết định "bác khiếu nại" thì được đưa lại vào giải ngân.
 **AC-DSP-03** – Given khiếu nại mở, Then cả hai bên được yêu cầu bằng chứng trong hạn (24 giờ); hết hạn mà không phản hồi thì xử lý theo chính sách và ghi nhận.
 **AC-DSP-04** – Given quyết định hoàn tiền, Then hoàn đúng số tiền quyết định, qua đúng quyền/ngưỡng phê duyệt, có audit; quyết định "bác" không phát sinh hoàn tiền.
@@ -344,4 +344,5 @@
 | Phiên bản | Ngày | Mô tả |
 |---|---|---|
 | 1.0 | 12/11/2026 | Tạo tiêu chí chấp nhận cho toàn bộ user story, gồm đường âm, lặp, đồng thời và phục hồi. |
+| 1.1 | 13/11/2026 | Đồng bộ thông số chuẩn hóa (`72 giờ` cửa sổ khiếu nại, `≤10 MB` ảnh / `≤50 MB` video, phí sàn `5%`, Reverse Logistics `72h/48h`). |
 

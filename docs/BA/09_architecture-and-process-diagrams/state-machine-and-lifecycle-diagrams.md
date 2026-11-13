@@ -116,8 +116,13 @@ stateDiagram-v2
 
     DISPUTED --> COMPLETED: Trọng tài bác bỏ khiếu nại -> Giải ngân cho Seller
     DISPUTED --> SPLIT_RESOLVED: Trọng tài phán quyết hoàn tiền 1 phần & giải ngân 1 phần
-    DISPUTED --> RETURN_IN_PROGRESS: Trọng tài yêu cầu Buyer gửi trả hàng cho Seller
-    RETURN_IN_PROGRESS --> REFUNDED_AFTER_RETURN: Seller nhận lại hàng -> Hoàn tiền 100% cho Buyer
+    DISPUTED --> RETURN_IN_PROGRESS: Trọng tài yêu cầu Buyer gửi trả hàng cho Seller (Hạn 72h)
+    RETURN_IN_PROGRESS --> RETURN_EXPIRED_TO_SELLER: Buyer quá 72h không gửi hàng trả -> Đóng khiếu nại & Giải ngân Seller
+    RETURN_EXPIRED_TO_SELLER --> [*]: Giải phóng Escrow cho Seller
+    RETURN_IN_PROGRESS --> DISPUTE_ESCALATED_SELLER: Seller mở phản khiếu nại sau POD (Kèm video khui hàng)
+    DISPUTE_ESCALATED_SELLER --> REFUNDED_AFTER_RETURN: Trọng tài xác minh hàng hoàn đúng -> Hoàn tiền 100% Buyer
+    DISPUTE_ESCALATED_SELLER --> SPLIT_RESOLVED: Trọng tài xử chia Escrow / Bồi thường
+    RETURN_IN_PROGRESS --> REFUNDED_AFTER_RETURN: Seller xác nhận nhận hàng HOẶC im lặng > 48h sau POD (Auto-Refund 100%)
 
     COMPLETED --> [*]
     SPLIT_RESOLVED --> [*]
@@ -224,15 +229,22 @@ stateDiagram-v2
 
     ESCALATED_TO_ARBITRATION --> VERDICT_REJECT_CLAIM: Bác bỏ khiếu nại -> Giải ngân 100% cho Seller
     ESCALATED_TO_ARBITRATION --> VERDICT_PARTIAL_REFUND: Phán quyết hoàn tiền một phần (Buyer giữ hàng)
-    ESCALATED_TO_ARBITRATION --> VERDICT_RETURN_AND_REFUND: Phán quyết trả hàng & Hoàn tiền 100%
+    ESCALATED_TO_ARBITRATION --> VERDICT_RETURN_AND_REFUND: Phán quyết trả hàng & Hoàn tiền 100% (Buyer phải gửi trả <= 72h)
 
-    VERDICT_RETURN_AND_REFUND --> RETURN_SHIPPING_ACTIVE: Tạo vận đơn 3PL chiều về từ Buyer -> Seller
-    RETURN_SHIPPING_ACTIVE --> RETURN_RECEIVED_VERIFIED: Seller xác nhận đã nhận lại đúng món hàng
+    VERDICT_RETURN_AND_REFUND --> RETURN_SHIPPING_ACTIVE: Tạo vận đơn 3PL chiều về từ Buyer -> Seller (Hạn gửi 72h)
+    RETURN_SHIPPING_ACTIVE --> RETURN_EXPIRED_TO_SELLER: Buyer quá 72h không giao hàng cho 3PL (BR-DSP-005)
+    RETURN_SHIPPING_ACTIVE --> RETURN_DELIVERED_PENDING_CHECK: 3PL trả Webhook POD đã giao hoàn tới Seller (Mở timer 48h)
+    RETURN_DELIVERED_PENDING_CHECK --> RETURN_RECEIVED_VERIFIED: Seller xác nhận đã nhận lại đúng món hàng
+    RETURN_DELIVERED_PENDING_CHECK --> RETURN_AUTO_REFUNDED: Hết 48h sau POD Seller im lặng -> Tự động hoàn 100% Buyer
+    RETURN_DELIVERED_PENDING_CHECK --> RETURN_DISPUTED_BY_SELLER: Seller gửi Video khui hàng phản khiếu nại (< 48h)
+    RETURN_DISPUTED_BY_SELLER --> SETTLEMENT_EXECUTED: Trọng tài thẩm định Video & ra phán quyết cuối (Giữ/Chia Escrow)
 
-    SELLER_ACCEPTED_REFUND --> SETTLEMENT_EXECUTED: Phát lệnh hoàn tiền qua Payment Service
+    SELLER_ACCEPTED_REFUND --> SETTLEMENT_EXECUTED: Phát lệnh hoàn tiền qua Payment Service (Phí sàn = 0đ)
     VERDICT_REJECT_CLAIM --> SETTLEMENT_EXECUTED: Phát lệnh giải ngân qua Payment Service
-    VERDICT_PARTIAL_REFUND --> SETTLEMENT_EXECUTED: Phát lệnh chia tiền Split qua Payment Service
+    VERDICT_PARTIAL_REFUND --> SETTLEMENT_EXECUTED: Phát lệnh chia tiền Split qua Payment Service (5% trên phần Seller)
+    RETURN_EXPIRED_TO_SELLER --> SETTLEMENT_EXECUTED: Đóng khiếu nại & Phát lệnh giải ngân cho Seller
     RETURN_RECEIVED_VERIFIED --> SETTLEMENT_EXECUTED: Phát lệnh hoàn tiền 100% qua Payment Service
+    RETURN_AUTO_REFUNDED --> SETTLEMENT_EXECUTED: Phát lệnh hoàn tiền tự động 100% qua Payment Service
 
     SETTLEMENT_EXECUTED --> DISPUTE_CLOSED_IMMUTABLE: Đóng hồ sơ & Lưu trữ WORM Audit Vault (INV-05)
     DISPUTE_CLOSED_IMMUTABLE --> [*]

@@ -30,7 +30,7 @@ flowchart TB
 
     subgraph DOCUMENT_TIER ["2. TẦNG TÀI LIỆU ĐA HÌNH & DÒNG SỰ KIỆN (MONGODB ATLAS REPLICA SET)"]
         direction LR
-        CAT_DB[("CatalogDB (MongoDB)\nSở hữu: SVC-02 & SVC-03\n- listings (Polymorphic Attrs)\n- categories, category_schemas\n- media_assets, prohibited_keywords")]
+        CAT_DB[("CatalogDB (MongoDB)\nSở hữu: SVC-02 Catalog\n- listings (Polymorphic Attrs)\n- categories, category_schemas\n- prohibited_keywords, outbox")]
         SHP_DB[("ShippingDB (MongoDB)\nSở hữu: SVC-07 Shipping\n- shipments, waybills\n- tracking_events (Bucket Pattern)\n- delivery_evidences, carrier_recon")]
         SUP_DB[("SupportDB (MongoDB)\nSở hữu: SVC-08 Trust & Support\n- dispute_cases, moderation_tasks\n- support_tickets, order_reviews\n- order_360_view (CQRS Read Model)")]
         NTF_DB[("NotificationDB (MongoDB)\nSở hữu: SVC-09 Notification\n- notifications (TTL 90d)\n- user_preferences\n- templates")]

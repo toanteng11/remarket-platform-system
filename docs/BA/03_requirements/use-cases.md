@@ -140,7 +140,7 @@
 | Actor | Buyer, Cổng thanh toán. |
 | Tiền điều kiện | Đơn Pending Payment, reservation còn hiệu lực. |
 | Luồng chính | 1. Buyer chọn phương thức. 2. Order yêu cầu Payment tạo giao dịch (số tiền, mã tham chiếu, idempotency). 3. Payment gọi cổng, nhận URL/thông tin thanh toán. 4. Buyer thanh toán tại cổng. 5. Cổng gửi kết quả (UC-09). 6. Giao diện hiển thị kết quả hoặc "đang xử lý". |
-| Luồng thay thế | 1a. COD (nếu được duyệt): đơn Confirmed khi chấp nhận điều kiện COD. 4a. Buyer thoát giữa chừng: có thể thử lại trong hạn reservation (FR-PAY-09). |
+| Luồng thay thế | 1a. **COD (Hoãn sang R3+ theo DEC-BIZ-03):** Trong R1/R2 chỉ áp dụng 100% Prepaid Escrow (`BR-PAY-015`). 4a. Buyer thoát giữa chừng: có thể thử lại trong hạn reservation (FR-PAY-09). |
 | Ngoại lệ | 3a. Cổng timeout: Payment ở Pending, không tạo giao dịch trùng khi thử lại (EX-005). 6a. Hết hạn giữ hàng khi đang trả: xử lý theo UC-09 (xung đột hết hạn – EX-007). |
 | Hậu điều kiện | Payment Pending/Captured/Failed. |
 | Liên quan | FR-PAY-01..07, FR-PAY-09; BR-PAY-001..005. |
@@ -230,7 +230,7 @@
 | Mục | Nội dung |
 |---|---|
 | Actor | Buyer, Seller, Support. |
-| Tiền điều kiện | Đơn Delivered trong cửa sổ khiếu nại (48 giờ – đề xuất). |
+| Tiền điều kiện | Đơn Delivered trong cửa sổ khiếu nại (72 giờ theo `DEC-BIZ-04`; xem thêm quy tắc hoàn trả `72h/48h` tại `BR-DSP-005`). |
 | Luồng chính | 1. Buyer mở khiếu nại với lý do và bằng chứng. 2. Hệ thống chuyển đơn Disputed, khóa giải ngân. 3. Hệ thống yêu cầu seller phản hồi/bằng chứng (24 giờ – đề xuất). 4. Support xem xét timeline (UC-18). 5. Support ra quyết định: hoàn toàn phần + trả hàng / hoàn một phần / bác. 6. Hệ thống thực thi (UC-17 hoặc mở giải ngân), thông báo, đóng vụ việc. |
 | Luồng thay thế | 3a. Bên không phản hồi đúng hạn: xử lý theo chính sách (cần xác nhận). 6a. Kháng nghị: vụ việc Reopened. |
 | Hậu điều kiện | Đơn trở lại Completed hoặc Cancelled/Refunded; có audit đầy đủ. |
@@ -272,7 +272,7 @@
 | Mục | Nội dung |
 |---|---|
 | Actor | Hệ thống, Finance. |
-| Tiền điều kiện | Đơn Completed, không Disputed (chu kỳ theo cấu hình, đề xuất T+3). |
+| Tiền điều kiện | Đơn Completed, không Disputed; giải ngân theo chu kỳ `T+3` (`72h` sau Delivered + lô kế tiếp), trừ phí sàn `5%` & `OverweightSurcharge` (`BR-PAY-012..014`). |
 | Luồng chính | 1. Hệ thống gom đơn đủ điều kiện theo người bán. 2. Tính số tiền (giá trừ phí/điều chỉnh theo chính sách). 3. Tạo lô giải ngân; Finance duyệt. 4. Thực hiện chuyển (qua cổng/ngân hàng); cập nhật trạng thái. 5. Thông báo người bán. |
 | Ngoại lệ | Đơn chuyển Disputed trước khi chuyển: loại khỏi lô. Chuyển thất bại: giữ ở hàng chờ, cảnh báo. |
 | Hậu điều kiện | Bản ghi giải ngân có audit. |
@@ -349,6 +349,9 @@
 | EX-015 | UC-07 |
 | EX-016..022 | UC-24, UC-25 |
 | EX-021 | UC-18, UC-19 |
+| EX-025 | UC-07 (Anti-Hoarding Lock & Cooldown 30p) |
+| EX-026, EX-029..031 | UC-11, UC-12, UC-20, UC-26 (OverweightSurcharge, Mất/Hỏng >=3M, RTS, Quá hạn đóng gói 48h) |
+| EX-027..028 | UC-16 (Reverse Logistics 72h Buyer gửi trả & 48h Seller sau POD) |
 
 ## 5. Ma trận use case ↔ journey và persona
 
@@ -366,4 +369,5 @@
 | Phiên bản | Ngày | Mô tả |
 |---|---|---|
 | 1.0 | 12/11/2026 | Tạo 26 use case, ma trận truy vết tới ngoại lệ, journey và FR. |
+| 1.1 | 13/11/2026 | Đồng bộ `UC-08` (COD hoãn R3+), `UC-16` (`72h` khiếu nại & Reverse Logistics `72h/48h`), `UC-20` (`T+3` & khấu trừ phí/phụ trội) và ánh xạ `EX-025..031`. |
 

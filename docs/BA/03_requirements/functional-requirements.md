@@ -58,7 +58,7 @@
 
 | ID | Yêu cầu | Kênh | Ưu tiên | Truy vết |
 |---|---|---|---|---|
-| FR-MED-01 | Người bán phải tải 1–10 ảnh/tin; định dạng JPEG/PNG/WebP; ≤5 MB/ảnh (đề xuất). | S | M | BR-MED-001 |
+| FR-MED-01 | Người bán phải tải 1–10 ảnh/tin; định dạng JPEG/PNG/WebP; ≤10 MB/ảnh (và video bằng chứng ≤50 MB/clip theo `DEC-BIZ-08`). | S | M | BR-MED-001 |
 | FR-MED-02 | Hệ thống phải kiểm tra loại tệp thực tế (không chỉ phần mở rộng) và kích thước trước khi chấp nhận. | SYS | M | BR-MED-003 |
 | FR-MED-03 | Tệp phải được lưu ở object storage; cơ sở dữ liệu chỉ lưu khóa đối tượng và metadata; tải lên/xem qua URL có thời hạn. | SYS | M | BR-MED-002 |
 | FR-MED-04 | Ảnh phải được quét mã độc và chỉ công khai sau khi đạt. | SYS | M | BR-MED-003 |
@@ -95,6 +95,7 @@
 | FR-CHK-10 | Nếu tin thay đổi giá/tình trạng giữa chừng, hệ thống phải yêu cầu người mua xác nhận lại hoặc dừng checkout. | M, SYS | M | EX-004 |
 | FR-CHK-11 | Khi không giữ được hàng, hệ thống phải báo lỗi dễ hiểu, không tạo đơn có thể thanh toán, và gợi ý tin tương tự. | M | M | BR-SRC-004 |
 | FR-CHK-12 | Người mua không được checkout tin của chính mình. | SYS | M | BR-ORD-002 |
+| FR-CHK-13 | Hệ thống áp dụng Anti-Hoarding khi giữ hàng 15 phút: tối đa 02 đơn `AWAITING_PAYMENT` đồng thời/Buyer; cooldown 30 phút và tối đa 02 lần hold/ngày cho cùng `(BuyerId, ListingId)` sau hủy/hết hạn. | SYS | M | BR-ORD-014 |
 
 ## 7. Quản lý đơn hàng (FR-ORD) – Order & Checkout
 
@@ -129,9 +130,9 @@
 | FR-PAY-10 | Hệ thống phải khởi tạo hoàn tiền (toàn phần/một phần) theo quyền và chính sách, ghi lý do, số tiền, tham chiếu thanh toán gốc, kết quả. | B, SYS | S | BR-PAY-006..007 |
 | FR-PAY-11 | Hệ thống phải đối soát định kỳ giữa ReMarket và nhà cung cấp; chênh lệch tạo hồ sơ đối soát, không xóa lịch sử. | B, SYS | S | BR-PAY-009 |
 | FR-PAY-12 | Hệ thống không lưu dữ liệu thẻ nhạy cảm; chỉ lưu tham chiếu giao dịch và thông tin tối thiểu. | SYS | M | BR-PAY-008 |
-| FR-PAY-13 | Hệ thống phải tạo lô giải ngân cho người bán sau khi đơn Completed theo chu kỳ cấu hình (đề xuất T+3 – cần xác nhận) và khóa giải ngân khi đơn Disputed. | B, SYS | S | BR-PAY-011..012; BR-DSP-002 |
+| FR-PAY-13 | Hệ thống phải tạo lô giải ngân cho người bán sau khi đơn Completed theo chu kỳ `T+3` (`72 giờ` bảo vệ sau Delivered + lô đối soát ngân hàng kế tiếp), trừ 5% phí sàn và `OverweightSurcharge` (nếu có), đồng thời khóa giải ngân khi đơn Disputed. | B, SYS | S | BR-PAY-011..014; BR-DSP-002 |
 | FR-PAY-14 | Người mua/bán xem trạng thái thanh toán/tiền hoàn/giải ngân của mình (che tham chiếu nhạy cảm). | M, S | S | NEED-BUY-06 |
-| FR-PAY-15 | Hệ thống nên hỗ trợ COD nếu được duyệt: đơn vào giao nhận khi xác nhận, đối soát tiền thu hộ qua hãng. | SYS | C | Q-OPS-05 |
+| FR-PAY-15 | *(Hoãn sang R3+ theo DEC-BIZ-03)* Hỗ trợ COD sau khi có cơ chế đối soát thu hộ 3PL và ký quỹ người bán; R1/R2 chỉ áp dụng 100% Prepaid Escrow (`BR-PAY-015`). | SYS | W (R3+) | Q-OPS-05; BR-PAY-015 |
 
 ## 9. Giao nhận (FR-SHP) – Shipping & Fulfillment
 
@@ -149,7 +150,8 @@
 | FR-SHP-10 | Giao thất bại/hoàn hàng/mất hàng: hệ thống mở hồ sơ vụ việc và không tự chuyển Completed. | SYS | M | BR-SHP-005; EX-012 |
 | FR-SHP-11 | Hệ thống phải cho hủy shipment trước khi hãng lấy hàng khi đơn bị hủy. | SYS | S | CAP-FUL-02 |
 | FR-SHP-12 | Hệ thống phải đối soát trạng thái định kỳ với hãng cho shipment ở trạng thái không rõ/quá hạn. | SYS | S | BR-SHP-003 |
-| FR-SHP-13 | Hệ thống chỉ có cổng nhân viên giao nhận riêng nếu ReMarket tự vận hành đội giao nhận (cần xác nhận). | B | W | Q-OPS-03 |
+| FR-SHP-13 | *(Loại trừ khỏi R1/R2 theo DEC-BIZ-07)* Hệ thống chỉ tích hợp 3PL đối tác cho kiện hàng <= 30kg, không có cổng đội giao nhận riêng trong R1/R2. | B | W | Q-OPS-03; BR-SHP-007 |
+| FR-SHP-14 | Hệ thống bắt buộc Bảo hiểm khai giá 3PL cho đơn >= 3.000.000 VNĐ, khấu trừ `OverweightSurcharge` vào `NetSellerAmount` nếu Seller khai thiếu cân nặng, và hoàn tiền ngay cho Buyer từ Escrow khi 3PL xác nhận `LOST`/`DAMAGED`. | SYS | M | BR-PAY-014; BR-SHP-006 |
 
 ## 10. Thông báo (FR-NTF) – Notification
 
@@ -183,12 +185,13 @@
 
 | ID | Yêu cầu | Kênh | Ưu tiên | Truy vết |
 |---|---|---|---|---|
-| FR-DSP-01 | Người mua mở khiếu nại trong cửa sổ cấu hình (đề xuất 48 giờ sau Delivered) với lý do và bằng chứng. | M | S | BR-DSP-001 |
+| FR-DSP-01 | Người mua mở khiếu nại trong cửa sổ `72 giờ` sau `Delivered` (`BR-DSP-001`) kèm lý do và bằng chứng ảnh (≤10 MB)/video (≤50 MB). | M | S | BR-DSP-001; BR-MED-001 |
 | FR-DSP-02 | Khi mở khiếu nại, đơn chuyển Disputed và khóa giải ngân. | SYS | S | BR-DSP-002 |
 | FR-DSP-03 | Hệ thống yêu cầu hai bên bổ sung bằng chứng trong thời hạn cấu hình (đề xuất 24 giờ). | SYS | S | BR-DSP-003 |
 | FR-DSP-04 | Nhân viên hỗ trợ ra quyết định: hoàn tiền toàn phần kèm trả hàng, hoàn một phần, hoặc bác khiếu nại; hệ thống thực thi và ghi audit. | B | S | BR-DSP-004 |
 | FR-DSP-05 | Hoàn tiền/ giải ngân sau quyết định phải đi qua quyền và phê duyệt theo ngưỡng (cần xác nhận). | B | S | BR-PAY-006 |
 | FR-DSP-06 | Đối tượng được thông báo kết quả; vụ việc đóng khi hoàn tất; mở lại theo chính sách kháng nghị. | SYS | S | BR-MOD-005 |
+| FR-DSP-07 | Hệ thống tự động quản lý Reverse Logistics theo phán quyết trả hàng: theo dõi hạn 72 giờ Buyer gửi hoàn (quá hạn $\rightarrow$ `RETURN_EXPIRED_TO_SELLER`), mở timer 48 giờ sau `POD` hoàn về Seller (im lặng $\rightarrow$ auto-refund 100%, hoặc cho phép Seller mở phản khiếu nại kèm video khui hàng). | SYS | S | BR-DSP-005; BR-DSP-006 |
 
 ## 13. Đánh giá (FR-REV)
 
@@ -255,4 +258,5 @@
 | Phiên bản | Ngày | Mô tả |
 |---|---|---|
 | 1.0 | 12/11/2026 | Tạo danh mục yêu cầu chức năng theo 15 module, bất biến liên service và ma trận bao phủ. |
+| 1.1 | 13/11/2026 | Đồng bộ `FR-MED-01` (`≤10 MB`), `FR-DSP-01` (`72 giờ`), `FR-PAY-13` (`T+3`), hoãn COD (`FR-PAY-15` -> `R3+`), loại trừ đội giao nhận riêng (`FR-SHP-13`) và bổ sung `FR-CHK-13`, `FR-SHP-14`, `FR-DSP-07`. |
 

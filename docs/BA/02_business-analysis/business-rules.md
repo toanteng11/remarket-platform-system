@@ -1,4 +1,4 @@
-﻿# Business Rules – ReMarket
+# Business Rules – ReMarket
 
 ## Thông tin tài liệu
 
@@ -37,7 +37,7 @@ Mã ID ổn định để truy vết từ yêu cầu, use case, test scenario, s
 | BR-LST-007 | Listing đã sold/reserved/ineligible không được tiếp tục hiển thị như chắc chắn có thể mua. | Đề xuất cần duyệt | Search/cache có thể trễ |
 | BR-LST-008 | Sửa thuộc tính ảnh hưởng giá, tình trạng hoặc khả năng mua phải được lưu lịch sử; có thể cần review lại. | Cần quyết định | Xác định loại thay đổi và review |
 | BR-LST-009 | Xóa listing/media phải xét nghĩa vụ evidence của order, report, dispute và retention. | Cần quyết định | Data retention/legal policy |
-| BR-MED-001 | Mỗi tin đăng phải có tối thiểu 01 ảnh thực tế và tối đa 10 ảnh; hỗ trợ JPEG, PNG, WebP; tối đa 5MB/ảnh. | Đề xuất cần duyệt | Tiêu chuẩn hóa dữ liệu media |
+| BR-MED-001 | Mỗi tin đăng phải có tối thiểu 01 ảnh thực tế và tối đa 10 ảnh; hỗ trợ JPEG, PNG, WebP; tối đa 10MB/ảnh (và video bằng chứng tối đa 50MB/clip). | Đã chuẩn hóa (DEC-BIZ-08) | Đồng bộ giới hạn ảnh/video xuyên suốt 02–09 |
 | BR-MED-002 | Ảnh được lưu trữ trực tiếp trên Amazon S3 với URL pre-signed; database chỉ lưu object key và metadata. | Bất biến thiết kế | Tối ưu hóa database performance |
 | BR-MED-003 | Ảnh upload phải được quét virus/malware và kiểm tra MIME type thực tế trước khi hiển thị công khai. | Đề xuất bảo mật | Bảo đảm an toàn nền tảng |
 | BR-PRO-001 | Nghiêm cấm tuyệt đối niêm yết vũ khí, chất cháy nổ, ma túy, động vật hoang dã, hàng giả và thuốc kê đơn. | Bất biến pháp lý | Tuân thủ quy định pháp luật |
@@ -53,6 +53,7 @@ Mã ID ổn định để truy vết từ yêu cầu, use case, test scenario, s
 | BR-ACT-003 | Moderator/support chỉ truy cập dữ liệu cần thiết cho case được giao. | Đề xuất cần duyệt | Least privilege, audit |
 | BR-ACT-004 | Thao tác nhạy cảm phải có danh tính người thực hiện, thời điểm, đối tượng, lý do và kết quả. | Đề xuất cần duyệt | Xác định audit retention |
 | BR-ACT-005 | Chia sẻ địa chỉ/số điện thoại với carrier/đối tác phải phục vụ mục đích giao dịch và giới hạn người nhận. | Cần quyết định | Consent, masking và retention |
+| BR-ACT-006 | Bắt buộc xác thực eKYC (CCCD + khuôn mặt) cho giao dịch đơn lẻ >= 5.000.000 VNĐ, trước khi Seller rút tiền hoặc vượt ngưỡng doanh thu; thu thập MST/CCCD phục vụ kê khai thuế TMĐT theo quy định. | Đã chuẩn hóa (DEC-BIZ-08) | Tuân thủ định danh rủi ro cao & nghĩa vụ thuế C2C |
 
 ## 5. Checkout, giữ hàng và order
 
@@ -70,7 +71,9 @@ Mã ID ổn định để truy vết từ yêu cầu, use case, test scenario, s
 | BR-ORD-010 | Không hoàn tất order chỉ dựa trên một trạng thái search/cache hoặc callback chưa xác minh. | Bất biến thiết kế đề xuất | Nguồn chuẩn và kiểm chứng |
 | BR-ORD-011 | Giỏ hàng (Cart) chỉ lưu ý định mua phía client/service; hệ thống KHÔNG giữ hàng khi sản phẩm chỉ mới ở trong giỏ. | Bất biến thiết kế | Tránh chiếm giữ hàng ảo |
 | BR-ORD-012 | Thao tác Giữ hàng (Reservation) chỉ kích hoạt khi người mua bấm "Thanh toán/Checkout" và chuyển sang màn hình trả tiền. | Bất biến thiết kế | Atomic lock trên Listing |
-| BR-ORD-013 | Thời hạn giữ hàng (Hold Window) mặc định là 15 phút. Quá thời hạn này mà chưa thanh toán xong, hệ thống tự động giải phóng hàng về trạng thái Published. | Đề xuất cần duyệt | Tránh treo hàng vô hạn |
+| BR-ORD-013 | Thời hạn giữ hàng (Hold Window) mặc định là 15 phút. Quá thời hạn này mà chưa thanh toán xong, hệ thống tự động giải phóng hàng về trạng thái Published. | Đã chuẩn hóa (DEC-BIZ-02) | Tránh treo hàng vô hạn |
+| BR-ORD-014 | Chống găm hàng (Anti-Hoarding): mỗi Buyer chỉ được giữ tối đa 02 đơn `AWAITING_PAYMENT` đồng thời; sau khi hủy hoặc hết hạn 15 phút trên cùng `(BuyerId, ListingId)` áp dụng cooldown 30 phút và tối đa 02 lần hold/ngày. | Đã chuẩn hóa (DEC-BIZ-02) | Ngăn chặn đối thủ/bot khóa tin đăng (`Inventory = 1`) hàng loạt |
+| BR-ORD-015 | Người bán phải xác nhận và bàn giao đơn cho 3PL trong vòng 48 giờ kể từ khi đơn đạt `PAID_ESCROW`; quá hạn mà chưa giao, hệ thống tự động hủy đơn và hoàn tiền 100% cho Buyer. | Đã chuẩn hóa (DEC-BIZ-04) | Tách bạch SLA đóng gói (48h) với cửa sổ khiếu nại Buyer (72h) |
 
 ## 6. Payment và refund
 
@@ -87,7 +90,10 @@ Mã ID ổn định để truy vết từ yêu cầu, use case, test scenario, s
 | BR-PAY-009 | Chênh lệch payment/order/provider tạo trạng thái reconciliation case, không tự xóa lịch sử. | Đề xuất cần duyệt | Quy trình finance/support |
 | BR-PAY-010 | Tiền thanh toán của người mua được thu hộ và lưu ký tại tài khoản trung gian của cổng thanh toán. | Đề xuất cần duyệt | Mô hình thanh toán sàn C2C |
 | BR-PAY-011 | Lệnh giải ngân (Payout) cho người bán chỉ được kích hoạt sau khi đơn hàng chuyển sang trạng thái Completed (hết hạn khiếu nại). | Đề xuất cần duyệt | Bảo vệ người mua đồ cũ |
-| BR-PAY-012 | Đối soát và tạo batch chuyển khoản giải ngân được thực hiện định kỳ (ví dụ T+3 sau khi đơn hoàn tất) qua chuyển khoản ngân hàng. | Cần quyết định | Chu kỳ tài chính |
+| BR-PAY-012 | Chu kỳ giải ngân `T+3` tính từ mốc `DELIVERED`: bao gồm đủ 72 giờ cửa sổ bảo vệ người mua (`DELIVERED -> COMPLETED`) cộng lô đối soát ngân hàng kế tiếp (`T+1` ngày làm việc), không tính chồng thêm 3 ngày sau `COMPLETED`. | Đã chuẩn hóa (DEC-BIZ-04) | Chu kỳ tài chính minh bạch, khớp `T+3` với đồng hồ `72h` |
+| BR-PAY-013 | Phí sàn nền tảng cố định là 5% trên giá trị sản phẩm (không tính trên cước 3PL). Đơn hoàn tiền 100% có phí sàn = 0 VNĐ; đơn Split Escrow thu 5% trên phần tiền Seller thực nhận. | Đã chuẩn hóa (DEC-BIZ-05) | Đồng bộ phí sàn 5% xuyên suốt UX, Escrow Ledger và báo cáo |
+| BR-PAY-014 | Phí phụ trội cân nặng/kích thước do Seller khai thiếu thông số kiện hàng (`OverweightSurcharge`) từ webhook/đối soát 3PL được khấu trừ trực tiếp vào `NetSellerAmount` trước khi giải ngân. | Đã chuẩn hóa (DEC-BIZ-05) | Ngăn Seller khai gian cân nặng gây thất thoát tài chính |
+| BR-PAY-015 | Giai đoạn R1/R2 chỉ áp dụng thanh toán Ký quỹ trả trước (`Prepaid Escrow Only` qua Ví điện tử/QR/Thẻ) để bảo toàn bất biến `INV-02/INV-04`; phương thức COD (`FR-PAY-15`) được hoãn sang R3+. | Đã chuẩn hóa (DEC-BIZ-03) | Đảm bảo 100% đơn hàng có bảo chứng Escrow trước khi giao 3PL |
 
 ## 7. Shipping, hoàn tất và hậu giao dịch
 
@@ -97,7 +103,9 @@ Mã ID ổn định để truy vết từ yêu cầu, use case, test scenario, s
 | BR-SHP-002 | Webhook cần xác thực, idempotency và xử lý sai thứ tự/trễ. | Bất biến thiết kế đề xuất | Mạng/provider có thể lặp |
 | BR-SHP-003 | Không xem đơn đã giao nếu thiếu bằng chứng/trạng thái đạt tiêu chí được duyệt. | Cần quyết định | Carrier signal/manual confirmation |
 | BR-SHP-004 | Định nghĩa ai trả phí, thời điểm lấy quote, phí phát sinh và bên chịu rủi ro giao nhận. | Cần quyết định | Marketplace policy |
-| BR-SHP-005 | Delivery failure/returned/lost phải kích hoạt quy trình case/đối soát; không tự hoàn tất order. | Đề xuất cần duyệt | Refund/return policy |
+| BR-SHP-005 | Giao hàng thất bại 3 lần (RTS)/hoàn trả/mất hàng phải kích hoạt quy trình case/đối soát, không tự hoàn tất order; khi RTS hoàn tất do Buyer không nhận hàng, hệ thống hoàn tiền hàng cho Buyer sau khi trừ cước 3PL hai chiều (giao đi & chuyển hoàn). | Đã chuẩn hóa (DEC-BIZ-06) | Phân bổ công bằng cước 3PL khi bom hàng |
+| BR-SHP-006 | Đơn hàng có giá trị sản phẩm >= 3.000.000 VNĐ bắt buộc mua Bảo hiểm khai giá 3PL. Khi 3PL xác nhận mất/hỏng hàng (`LOST`/`DAMAGED`), hệ thống hoàn tiền ngay cho Buyer từ Escrow và hạch toán đòi bồi thường 3PL về quỹ nền tảng. | Đã chuẩn hóa (DEC-BIZ-07) | Tránh bắt Buyer chờ bồi thường 3PL kéo dài 7–15 ngày |
+| BR-SHP-007 | Phạm vi giao nhận R1/R2 chỉ áp dụng cho hàng hóa tiêu chuẩn qua 3PL (`<= 30kg`, đúng chuẩn kích thước); loại trừ xe máy, bất động sản và nội thất quá khổ tự giao. | Đã chuẩn hóa (DEC-BIZ-07) | Đảm bảo mọi đơn đều có tracking & POD chuẩn từ 3PL |
 | BR-REV-001 | Review chỉ gắn với giao dịch đủ điều kiện theo policy. | Đề xuất cần duyệt | Eligibility/window/moderation |
 | BR-REV-002 | Một buyer không thể tạo nhiều review làm sai lệch cùng một giao dịch nếu chưa có policy cho chỉnh sửa. | Cần quyết định | Edit/reply rules |
 
@@ -123,10 +131,12 @@ Mã ID ổn định để truy vết từ yêu cầu, use case, test scenario, s
 
 | ID | Quy tắc dự kiến | Trạng thái | Lý do/điểm cần chốt |
 |---|---|---|---|
-| BR-DSP-001 | Người mua có quyền mở khiếu nại trong vòng 48 giờ kể từ thời điểm đơn hàng chuyển sang Delivered nếu hàng không đúng mô tả hoặc hư hỏng. | Đề xuất cần duyệt | Chính sách bảo vệ người mua |
+| BR-DSP-001 | Người mua có quyền mở khiếu nại trong vòng 72 giờ kể từ thời điểm đơn hàng chuyển sang `Delivered` nếu hàng không đúng mô tả, thiếu phụ kiện hoặc hư hỏng. | Đã chuẩn hóa (DEC-BIZ-04) | Khớp đồng hồ bảo vệ `72 giờ` trong 04, 08, 09 (`T+3`) |
 | BR-DSP-002 | Khi có khiếu nại, đơn hàng lập tức chuyển sang trạng thái Disputed; khoản giải ngân cho người bán bị khóa tự động. | Bất biến nghiệp vụ | Đóng băng tiền để xử lý |
 | BR-DSP-003 | Cả người mua và người bán phải cung cấp hình ảnh/video bằng chứng trong vòng 24 giờ kể từ khi được nhân viên hỗ trợ yêu cầu. | Đề xuất cần duyệt | Căn cứ hòa giải |
-| BR-DSP-004 | Quyết định hòa giải có thể là: Hoàn tiền toàn phần & trả hàng, Hoàn tiền một phần giữ hàng, hoặc Bác bỏ khiếu nại (tiếp tục giải ngân cho seller). | Đề xuất cần duyệt | Các kịch bản hòa giải |
+| BR-DSP-004 | Quyết định hòa giải có thể là: Hoàn tiền toàn phần & trả hàng, Hoàn tiền một phần giữ hàng, hoặc Bác bỏ khiếu nại (tiếp tục giải ngân cho seller). | Đã chuẩn hóa (DEC-BIZ-05/06) | Các kịch bản hòa giải |
+| BR-DSP-005 | Vòng đời hoàn trả ngược (`VERDICT_RETURN_AND_REFUND`): Buyer phải gửi trả hàng qua 3PL trong vòng 72 giờ (quá hạn $\rightarrow$ đóng khiếu nại và giải ngân Seller); sau khi có `POD` giao hoàn về Seller, Seller có 48 giờ để xác nhận hoặc mở phản khiếu nại kèm video khui hàng (quá 48 giờ im lặng $\rightarrow$ tự động hoàn tiền 100% Buyer). | Đã chuẩn hóa (DEC-BIZ-06) | Khép kín deadlock hoàn hàng hai chiều |
+| BR-DSP-006 | Trách nhiệm cước hoàn trả & `RTS`: Nếu lỗi thuộc Seller (hàng sai mô tả/hỏng trước giao), Seller chịu phí ship 3PL chiều đi & chiều về; nếu giao thất bại 3 lần do Buyer không nhận (`RTS`), Buyer chịu phí ship 3PL hai chiều trước khi hoàn phần tiền hàng còn lại (`Phí sàn = 0 VNĐ`). | Đã chuẩn hóa (DEC-BIZ-06) | Chống thiệt hại cho bên ngay tình khi phát sinh trả/hoàn hàng |
 
 ## 9. Moderation và hỗ trợ
 
@@ -138,6 +148,12 @@ Mã ID ổn định để truy vết từ yêu cầu, use case, test scenario, s
 | BR-MOD-004 | Hành động ảnh hưởng order/payment cần quyền riêng, xác nhận và audit phù hợp mức rủi ro. | Cần quyết định | Approval matrix |
 | BR-MOD-005 | Appeal, thời hạn phản hồi, bằng chứng và thông báo cho người bị ảnh hưởng cần policy. | Cần quyết định | Chưa có moderation policy |
 | BR-MOD-006 | Xóa/ẩn nội dung không tự xóa lịch sử giao dịch hoặc case đang mở. | Đề xuất cần duyệt | Điều tra và retention |
+
+### 9.1. Tin nhắn, Chống giao dịch ngoài sàn & Đề xuất Giá riêng (Phạm vi R3)
+
+| ID | Quy tắc chuẩn hóa | Trạng thái | Lý do/điểm cần chốt |
+|---|---|---|---|
+| BR-MSG-001 | Chat 1-1 theo ngữ cảnh đơn/tin đăng (triển khai từ `R3`) phải lọc/che PII (SĐT, link Zalo/Facebook, số tài khoản ngân hàng) để chống lừa đảo ngoài sàn. Thương lượng giá sử dụng `Private Price Offer` gắn riêng cho `BuyerId` (hiệu lực 24 giờ), không làm thay đổi giá công khai của tin đăng. | Đã chuẩn hóa (DEC-BIZ-09) | Chặn thất thoát GMV & giữ an toàn giao dịch trước R3 |
 
 ## 10. Dữ liệu, tích hợp và vận hành
 
@@ -171,3 +187,4 @@ Với mỗi ID khi chốt, ghi: policy statement cuối, trạng thái, owner, n
 | Phiên bản | Ngày | Mô tả |
 |---|---|---|
 | 1.0 | 12/11/2026 | Tạo baseline quy tắc đề xuất và guardrail; chưa có policy nghiệp vụ nào được đánh dấu đã duyệt. |
+| 1.1 | 13/11/2026 | Chuẩn hóa thông số xuyên suốt 02–09 (`72h` khiếu nại, `T+3`, `5%` phí sàn, `<=10MB` ảnh, `Prepaid Escrow Only R1/R2`) và bổ sung `BR-ACT-006`, `BR-ORD-014..015`, `BR-PAY-013..015`, `BR-SHP-006..007`, `BR-DSP-005..006`, `BR-MSG-001`. |

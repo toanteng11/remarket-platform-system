@@ -125,11 +125,12 @@ ReMarket là dự án **phân tích và thiết kế**; BRQ mô tả hệ thốn
 - Mặc định một tin đăng = một món hàng đơn chiếc (A-05, Q-BIZ-03).
 - Mặc định một đơn chỉ có một người bán (BR-ORD-008, Q-BIZ-10).
 - Phương thức thanh toán, hãng vận chuyển, market, tiền tệ chưa chọn: yêu cầu liên quan chỉ ở mức hợp đồng tích hợp.
-- Các thông số định lượng (hold window 15 phút, hạn khiếu nại 48 giờ, giờ yên tĩnh, số ảnh tối đa) là **giá trị đề xuất** trong `business-rules.md`, phải do Product Owner phê duyệt trước khi coi là cố định; thiết kế phải cho phép cấu hình.
+- Các thông số định lượng (hold window 15 phút, hạn khiếu nại 72 giờ, phí sàn 5%, ảnh ≤10 MB, giờ yên tĩnh, số ảnh tối đa) đã được chuẩn hóa theo baseline `DEC-BIZ-01..10` trong `open-questions-and-decisions.md` và `business-rules.md`; thiết kế vẫn phải hỗ trợ tham số hóa qua cấu hình.
 
 ## 7. Lịch sử cập nhật
 
 | Phiên bản | Ngày | Mô tả |
 |---|---|---|
 | 1.0 | 12/11/2026 | Tạo danh mục yêu cầu nghiệp vụ, phạm vi loại trừ và ma trận truy vết mục tiêu. |
+| 1.1 | 13/11/2026 | Đồng bộ thông số chuẩn hóa theo `DEC-BIZ-01..10` (`72h` khiếu nại, `5%` phí sàn, ảnh `≤10 MB`). |
 

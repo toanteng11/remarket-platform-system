@@ -222,8 +222,8 @@ Nhằm đảm bảo tính nhất quán trên cả 3 kênh (`Marketplace`, `Selle
 | THÔNG TIN SẢN PHẨM CẦN GIAO:                     | THÔNG TIN GIAO HÀNG & NGƯỜI MUA:     |
 | - iPhone 12 Pro Max 128GB (Mã: LST-7812)         | Người nhận: Nguyễn Văn A             |
 | - Tình trạng lúc bán: Tốt (COND-GOOD)            | Số điện thoại: 0987 654 321          |
-| - Doanh thu nhận ròng: 11.155.000 đ              | Địa chỉ: 123 Đường Nguyễn Trãi,      |
-|   (Đã trừ 3% phí sàn nền tảng: 345.000 đ)        |          Phường 2, Quận 5, TP.HCM    |
+| - Doanh thu nhận ròng: 10.925.000 đ              | Địa chỉ: 123 Đường Nguyễn Trãi,      |
+|   (Đã trừ 5% phí sàn nền tảng: 575.000 đ)        |          Phường 2, Quận 5, TP.HCM    |
 |   (Tiền đang giữ tại Escrow, giải ngân sau 72h)  | (Chỉ hiển thị khi đơn đã Confirmed)  |
 +--------------------------------------------------+--------------------------------------+
 | HẠN CHÓT GIAO CHO ĐƠN VỊ VẬN CHUYỂN: Còn 36 giờ (Trước 14:00 ngày 14/11/2026)          |

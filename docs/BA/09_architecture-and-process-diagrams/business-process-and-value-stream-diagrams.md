@@ -151,9 +151,12 @@ Sơ đồ mô tả luồng giao dịch cốt lõi nhất của ReMarket: Đặt 
 
 ```mermaid
 flowchart TD
-    START(("Người Mua bấm\nMUA NGAY trên PDP\n(SCR-MKT-03)")) --> CHECK_SELF{"1. Kiểm tra Người mua\ncó trùng Người bán?"}
+    START(("Người Mua bấm\nMUA NGAY trên PDP\n(SCR-MKT-03)")) --> CHECK_SELF{"1a. Kiểm tra Người mua\ncó trùng Người bán?"}
     CHECK_SELF -- "Trùng (Self-trading)" --> ERR_SELF["Chặn HTTP 400:\nKhông thể tự mua hàng của mình"]
-    CHECK_SELF -- "Hợp lệ" --> QUOTE["2. Chọn địa chỉ nhận hàng\n& Tính phí ship 3PL tức thời\n(SCR-MKT-04)"]
+    CHECK_SELF -- "Hợp lệ" --> CHECK_HOARD{"1b. Kiểm tra Anti-Hoarding & eKYC:\n(<=2 đơn hold, không Cooldown 30p,\neKYC nếu đơn >= 5M VNĐ)"}
+    CHECK_HOARD -- "Vượt giới hạn giữ hàng" --> ERR_429["Chặn HTTP 429:\nQuá số đơn giữ chỗ / Đang Cooldown 30p"]
+    CHECK_HOARD -- "Thiếu eKYC (>= 5M VNĐ)" --> ERR_KYC["Chặn HTTP 403:\nYêu cầu hoàn tất eKYC CCCD"]
+    CHECK_HOARD -- "Hợp lệ" --> QUOTE["2. Chọn địa chỉ nhận hàng\n& Tính phí ship 3PL + BH (>= 3M)\n(SCR-MKT-04)"]
 
     QUOTE --> CLICK_PAY["3. Người mua xác nhận Đặt hàng\n(Kèm Header Idempotency-Key)"]
     CLICK_PAY --> LOCK_TIER1{"4. Tầng 1 Lock (Redis):\nSET lock:listing:{id} NX EX 900"}
@@ -164,17 +167,17 @@ flowchart TD
     LOCK_TIER2 -- "Thất bại" --> REL_REDIS["Xóa khóa Redis\n& Trả về HTTP 409 Conflict"]
     LOCK_TIER2 -- "Thành công" --> CREATE_ORD["6. Tạo Order (AWAITING_PAYMENT)\n+ OrderReservation (Hạn 15:00)\n+ Snapshot Giá & Thuộc tính"]
 
-    CREATE_ORD --> SYNC_CAT["7. Cập nhật Listing.STATUS = RESERVED\n& Tạo PaymentIntent (HMAC-SHA512)"]
-    SYNC_CAT --> REDIRECT_PSP["8. Điều hướng người mua sang\nCổng VNPAY / MoMo / VietQR\n(Đồng hồ đếm ngược 15:00 chạy)"]
+    CREATE_ORD --> SYNC_CAT["7. Cập nhật Listing.STATUS = RESERVED\n& Tạo PaymentIntent Prepaid Escrow"]
+    SYNC_CAT --> REDIRECT_PSP["8. Điều hướng người mua sang\nCổng VNPAY / MoMo / VietQR (Không COD)\n(Đồng hồ đếm ngược 15:00 chạy)"]
 
     REDIRECT_PSP --> WAIT_WH{"9. Kết quả Thanh toán\ntrong vòng 15 phút?"}
 
     WAIT_WH -- "Webhook Thành công (<= 15p)" --> IDEM_CHK{"10. Kiểm tra Idempotent\nProcessedWebhooks?"}
     IDEM_CHK -- "Đã xử lý trước đó" --> ACK_200["Trả về HTTP 200 OK\n(Bỏ qua không cộng trùng tiền - INV-02)"]
     IDEM_CHK -- "Giao dịch mới hợp lệ" --> ESCROW_HOLD["11. Ghi sổ cái EscrowHoldings (CAPTURED)\n+ Chuyển Order sang PAYMENT_ESCROWED\n+ Chuyển Listing sang SOLD"]
-    ESCROW_HOLD --> NOTIFY_SELLER["12. Thông báo Seller chuẩn bị đóng gói hàng\n(EVT-14 PaymentSucceededEvent)"]
+    ESCROW_HOLD --> NOTIFY_SELLER["12. Thông báo Seller chuẩn bị đóng gói (Hạn 48h)\n(EVT-14 PaymentSucceededEvent)"]
 
-    WAIT_WH -- "Quá hạn 15p không trả tiền\nhoặc Buyer bấm Hủy" --> EXPIRE_LOCK["13. Worker giải phóng khóa giữ chỗ:\n- Order -> CANCELLED_TIMEOUT\n- Listing -> ACTIVE trở lại sàn"]
+    WAIT_WH -- "Quá hạn 15p không trả tiền\nhoặc Buyer bấm Hủy" --> EXPIRE_LOCK["13. Worker giải phóng khóa giữ chỗ:\n- Order -> CANCELLED_TIMEOUT\n- Kích hoạt Cooldown 30p Anti-Hoarding\n- Listing -> ACTIVE trở lại sàn"]
 
     EXPIRE_LOCK -.->|"Ngoại lệ: Tiền về trễ ở phút thứ 16"| LATE_PAY["14. Ghi nhận EXPIRED_PAYMENT_CAPTURED\n& Kích hoạt Auto-Refund hoàn tiền 100%\nvề PSP trong 30 giây (INV-02)"]
 
@@ -184,8 +187,8 @@ flowchart TD
     classDef dec fill:#fff9c4,stroke:#f57f17,stroke-width:1.5px;
     class CREATE_ORD,ESCROW_HOLD,NOTIFY_SELLER pass;
     class LOCK_TIER1,LOCK_TIER2,SYNC_CAT lock;
-    class ERR_SELF,ERR_409,REL_REDIS,EXPIRE_LOCK,LATE_PAY err;
-    class CHECK_SELF,WAIT_WH,IDEM_CHK dec;
+    class ERR_SELF,ERR_429,ERR_KYC,ERR_409,REL_REDIS,EXPIRE_LOCK,LATE_PAY err;
+    class CHECK_SELF,CHECK_HOARD,WAIT_WH,IDEM_CHK dec;
 ```
 
 ---
@@ -224,7 +227,11 @@ sequenceDiagram
         Carrier->>ShpSvc: Webhook: DELIVERY_FAILED -> RETURNING_TO_SENDER (RTS)
         ShpSvc->>OrdSvc: Chuyển trạng thái xử lý chuyển hoàn RTS
         Carrier->>ShpSvc: Đã trả hàng lại cho Seller -> Webhook: RETURNED
-        OrdSvc->>PaySvc: Hoàn tiền hàng cho Buyer (Trừ phí vận chuyển theo chính sách)
+        OrdSvc->>PaySvc: Hoàn tiền hàng cho Buyer (Trừ cước 3PL hai chiều; Phí sàn = 0 VNĐ)
+    else 3PL xác nhận Mất hoặc Hỏng nặng hàng (LOST / DAMAGED)
+        Carrier->>ShpSvc: Webhook: LOST / DAMAGED (Kích hoạt hồ sơ Bảo hiểm khai giá >= 3M VNĐ)
+        ShpSvc->>OrdSvc: Đánh dấu sự cố vận chuyển 3PL
+        OrdSvc->>PaySvc: Hoàn tiền 100% NGAY cho Buyer từ Escrow & Hạch toán đòi 3PL về Quỹ sàn
     else Giao hàng thành công cho Người mua
         Carrier->>ShpSvc: 2. Webhook: DELIVERED (Kèm ảnh chụp Bằng chứng POD & Chữ ký)
         ShpSvc->>OrdSvc: Cập nhật Order.STATUS = DELIVERED & Kích hoạt Timer 72 giờ
@@ -234,8 +241,8 @@ sequenceDiagram
     alt Buyer bấm "Đã nhận hàng đúng mô tả" sớm HOẶC hết 72h không có khiếu nại
         OrdSvc->>OrdSvc: 3. Chuyển Order.STATUS = COMPLETED
         OrdSvc->>PaySvc: Phát sự kiện EVT-12 OrderCompletedEvent
-        PaySvc->>PaySvc: 4. Giải phóng EscrowHoldings -> Ghi sổ PayoutLedgers
-        PaySvc-->>Seller: Chuyển khoản tiền bán hàng về Ngân hàng của Seller (T+3 Settlement)
+        PaySvc->>PaySvc: 4. Giải phóng EscrowHoldings -> Trừ 5% phí sàn & OverweightSurcharge (nếu có) -> Ghi sổ PayoutLedgers
+        PaySvc-->>Seller: Chuyển khoản NetSellerAmount về Ngân hàng của Seller (T+3 = 72h bảo vệ + Lô ngân hàng kế tiếp)
     end
 ```
 
@@ -262,8 +269,8 @@ flowchart TB
     REVIEW_360 --> VERDICT{"8. Phán quyết cuối cùng\ncủa Trọng tài viên?"}
 
     VERDICT -- "Phương án A: Bác bỏ khiếu nại\n(Hàng đúng mô tả)" --> V_SELLER["Mở băng Escrow -> Giải ngân 100%\ncho Người bán (RESOLVED_RELEASE_SELLER)"]
-    VERDICT -- "Phương án B: Hoàn tiền một phần\n(Lỗi nhẹ, Buyer giữ hàng)" --> V_SPLIT["Chia sổ cái Ký quỹ (Split Settlement):\nHoàn X% cho Buyer + Giải ngân (100-X)% cho Seller"]
-    VERDICT -- "Phương án C: Hoàn tiền 100%\nkèm Trả hàng (Lỗi nghiêm trọng)" --> V_RETURN["Tạo vận đơn chiều về 3PL trả hàng cho Seller\n-> Khi Seller nhận lại hàng -> Hoàn 100% tiền cho Buyer"]
+    VERDICT -- "Phương án B: Hoàn tiền một phần\n(Lỗi nhẹ, Buyer giữ hàng)" --> V_SPLIT["Chia sổ cái Ký quỹ (Split Settlement):\nHoàn X% cho Buyer + Giải ngân (100-X)% trừ 5% phí cho Seller"]
+    VERDICT -- "Phương án C: Hoàn tiền 100%\nkèm Trả hàng (Lỗi nghiêm trọng)" --> V_RETURN["Tạo vận đơn chiều về 3PL (Buyer gửi trong 72h;\nQuá 72h -> Giải ngân Seller | Sau POD hoàn 48h:\nSeller xác nhận/tự động hoàn 100% hoặc mở Phản khiếu nại video)"]
 
     EXEC_REFUND & V_SELLER & V_SPLIT & V_RETURN --> AUDIT_WORM["9. Lưu vết phán quyết bất biến vào Audit Log & S3 WORM\n(Bảo vệ INV-05 - US-DSP-04)"]
 
